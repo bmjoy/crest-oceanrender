@@ -20,6 +20,7 @@ Shader "Ocean/Shape/Sim/Combine"
 			#pragma fragment frag
 			
 			#include "UnityCG.cginc"
+			#include "FoamHelpers.cginc"
 
 			struct appdata
 			{
@@ -75,8 +76,15 @@ Shader "Ocean/Shape/Sim/Combine"
 				float2 uv_1 = worldToUV(worldPos, _WD_Pos_1, _WD_Params_1.y, _WD_Params_1.x);
 				half4 simData = tex2D(_MainTex, uv_1);
 
+				float foamPacked = simData.z;
+				float foamCurrent, foamAccum;
+				UnPackFoam(foamPacked, foamCurrent, foamAccum);
+
+				// add current and accumulated foam from this lod into the next
+				float foamAdd = PackFoam(0., min(foamCurrent + foamAccum, .9));
+
 				// combine simulation results into w channel. dont mess with xyz - this would mess with the simulation
-				return half4( 0., 0., simData.z, simData.x + simData.w );
+				return half4( 0., 0., foamAdd, simData.x + simData.w );
 			}
 			ENDCG
 		}

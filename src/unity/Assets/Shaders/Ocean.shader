@@ -28,6 +28,7 @@ Shader "Ocean/Ocean"
 				#pragma fragment frag
 				#pragma multi_compile_fog
 				#include "UnityCG.cginc"
+				#include "Shapes/FoamHelpers.cginc"
 
 				// tints the output color based on which shape texture(s) were sampled, blended according to weight
 				//#define DEBUG_SHAPE_SAMPLE
@@ -124,7 +125,7 @@ Shader "Ocean/Ocean"
 					io_foamAmount += wt * foamAmount;
 					*/
 
-					io_foamAmount += wt * s.z;
+					io_foamAmount += wt * UnPackFoam_AccumValue(s.z);
 				}
 
 				v2f vert( appdata_t v )

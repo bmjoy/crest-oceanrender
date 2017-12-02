@@ -31,6 +31,7 @@ Shader "Ocean/Shape/Sim/2D Wave Equation"
 				#pragma fragment frag
 				#pragma multi_compile_fog
 				#include "UnityCG.cginc"
+				#include "FoamHelpers.cginc"
 				#define PI 3.141592653
 
 				struct appdata_t {
@@ -121,12 +122,19 @@ Shader "Ocean/Shape/Sim/2D Wave Equation"
 					float accel = ((ftp - ft) - (ft - ftm));
 					float foam = -accel * 160.;
 					foam = max(foam, 0.);
+					foam = min(foam, .9);
+
 					// foam could be faded slowly across frames, but right now the combine pass uses the foam channel for
 					// accumulation, so the last frames foam value cannot be used. could solve this by packing two values
 					// into the foam channel - (current foam value, accumulated foam value for rendering)
 
+					float foamPacked = ft_ftm_foam_a.z;
+					float foamLast, foamAccum;
+					UnPackFoam(foamPacked, foamLast, foamAccum);
+					//foam = lerp(foamLast, foam, 0.8);
+
 					// w channel will be used to accumulate simulation results down the lod chain
-					return float4( ftp, ft, foam, 0. );
+					return float4(ftp, ft, PackFoam(foam, 0.), 0.);
 				}
 
 				ENDCG
