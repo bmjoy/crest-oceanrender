@@ -22,7 +22,7 @@ Shader "Ocean/Shape/Gerstner Octave"
 			{
 				Name "BASE"
 				Tags { "LightMode" = "Always" }
-				Blend One One
+				//Blend One One
 			
 				CGPROGRAM
 				#pragma vertex vert
@@ -41,6 +41,7 @@ Shader "Ocean/Shape/Gerstner Octave"
 				struct v2f {
 					float4 vertex : SV_POSITION;
 					float3 worldPos : TEXCOORD0;
+					float2 uv : TEXCOORD1;
 				};
 
 				uniform float _Wavelength;
@@ -49,6 +50,11 @@ Shader "Ocean/Shape/Gerstner Octave"
 				{
 					v2f o;
 					o.vertex = UnityObjectToClipPos( v.vertex );
+
+					o.uv = o.vertex.xy;
+					o.uv.y = -o.uv.y;
+					o.uv.xy = 0.5*o.uv.xy + 0.5;
+
 					o.worldPos = mul( unity_ObjectToWorld, v.vertex ).xyz;
 
 					// if wavelength is too small, kill this quad so that it doesnt render any shape
@@ -69,6 +75,14 @@ Shader "Ocean/Shape/Gerstner Octave"
 
 				float4 frag (v2f i) : SV_Target
 				{
+					float2 distToEdge = min(i.uv,1. - i.uv) * _ScreenParams.xy;
+					float thr = 5.;
+					if (distToEdge.x > .75 * thr
+						&& distToEdge.y > .75 * thr )
+					{
+						clip(-1.);
+					}
+
 					float C = _SpeedMul * ComputeDriverWaveSpeed(_Wavelength);
 					// direction
 					float2 D = float2(cos(PI * _Angle / 180.0), sin(PI * _Angle / 180.0));
@@ -86,18 +100,19 @@ Shader "Ocean/Shape/Gerstner Octave"
 
 					// start search at displaced position
 					float2 samplePos = displacedPos;
-					for (int i = 0; i < 8; i++)
-					{
-						float x_ = dot(D, samplePos);
-						float2 error = displacedPos - (samplePos + _Steepness * -sin(k*(x_ + C*_MyTime)) * D);
-						// move to eliminate error
-						samplePos += 0.7 * error;
-					}
+					//for (int i = 0; i < 8; i++)
+					//{
+					//	float x_ = dot(D, samplePos);
+					//	float2 error = displacedPos - (samplePos + _Steepness * -sin(k*(x_ + C*_MyTime)) * D);
+					//	// move to eliminate error
+					//	samplePos += 0.7 * error;
+					//}
 
 					float x = dot(D, samplePos);
-					float y = _Amplitude * cos(k*(x + C*_MyTime));
+					float y0 = /*_Amplitude **/ cos(k*(x + C*(_MyTime - _MyDeltaTime)));
+					float y1 = /*_Amplitude **/ cos(k*(x + C*_MyTime));
 
-					return float4(_MyDeltaTime*_MyDeltaTime*y, 0., 0., 0.);
+					return float4(/*_MyDeltaTime*_MyDeltaTime**/y1, y0, 0., 0.);
 				}
 
 				ENDCG
